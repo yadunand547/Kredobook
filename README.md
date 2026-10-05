@@ -1,265 +1,224 @@
 # KredoBook
 
-An enterprise-grade, secure, and production-ready **Loan Management Platform** built with **FastAPI**, **React (Vite)**, and **Neon Serverless PostgreSQL**.
+KredoBook is a role-based loan management application for tracking borrower accounts, individual loans, repayment proof, and monthly payment reminders. It gives administrators a central portfolio view while keeping each borrower limited to their own financial records.
 
----
+## Purpose
 
-## Table of Contents
+Small lending operations often need a lightweight way to record loans, verify repayments, and follow up on outstanding balances without relying on spreadsheets. KredoBook provides that workflow in one place:
 
-- [1. Architecture Overview](#1-architecture-overview)
-- [2. Features & Functional Modules](#2-features--functional-modules)
-- [3. Monthly Email Reminder System](#3-monthly-email-reminder-system)
-- [4. Security Hardening & Concurrency Protection](#4-security-hardening--concurrency-protection)
-- [5. Financial Data Integrity](#5-financial-data-integrity)
-- [6. Environment Variables](#6-environment-variables)
-- [7. Local Development Guide](#7-local-development-guide)
-- [8. Database Migrations (Alembic)](#8-database-migrations-alembic)
-- [9. Production Deployment Guide](#9-production-deployment-guide)
-- [10. API Reference](#10-api-reference)
-- [11. Testing & Verification](#11-testing--verification)
+- administrators create and manage borrower accounts and loans;
+- borrowers view their loan portfolio and submit repayment proof;
+- verified payments update balances; and
+- monthly reminders notify eligible borrowers without changing any financial data.
 
----
+## Key features
 
-## 1. Architecture Overview
+### Administration
+
+- Create, update, activate, deactivate, and permanently remove borrower accounts.
+- Create, edit, inspect, and remove loans.
+- Record historic/offline payments and review borrower-submitted payments.
+- Approve or reject repayment proofs, with rejection reasons.
+- View portfolio statistics, outstanding balances, and pending-payment counts.
+- Filter loans by borrower and sort them by newest, oldest, highest amount, or lowest amount.
+- Trigger monthly reminder delivery and review reminder logs.
+
+### Borrower portal
+
+- Secure login and an account-scoped dashboard.
+- View active and historical loans, repayment progress, balances, and loan details.
+- Sort loans by newest, oldest, highest amount, or lowest amount.
+- Submit repayment amount, payment month/date, and a screenshot proof.
+- Review payment history and verification status.
+
+### Financial integrity and security
+
+- Separate `ADMIN` and `BORROWER` roles with JWT authentication.
+- Borrower ownership checks prevent access to another borrower's loans, payments, or screenshots.
+- Amounts are persisted as `NUMERIC(15,2)` / `Decimal` values.
+- A loan balance is derived from verified payments only; pending and rejected payments do not reduce it.
+- Payment review follows a one-way workflow: `PENDING` -> `VERIFIED` or `REJECTED`.
+- Payment uploads are size- and MIME-validated, stored with generated filenames, and served only to authorised users.
+- Monthly reminder records are idempotent per borrower and month.
+
+## Domain model
+
+| Entity | Meaning | Important relationships |
+| --- | --- | --- |
+| `User` | An administrator or borrower account. | A borrower can have many loans and payments. |
+| `Loan` | A distinct loan issued to one borrower. | Has an amount, payable total, minimum monthly payment, status, and payments. |
+| `Payment` | A repayment submission or admin-recorded historic payment. | Belongs to one loan and borrower; may have a proof screenshot and verifier. |
+| `ReminderLog` | Audit record for a monthly reminder attempt. | Prevents duplicate reminders for the same borrower/month. |
+
+Loan statuses are `ACTIVE`, `PAID`, and `CANCELLED`. Payment statuses are `PENDING`, `VERIFIED`, and `REJECTED`.
+
+## Tech stack
+
+- **Frontend:** React 19, Vite, React Router
+- **Backend:** FastAPI, SQLAlchemy 2, Pydantic
+- **Database:** PostgreSQL (configured for Neon)
+- **Authentication:** JWT and bcrypt password hashing
+- **Migrations:** Alembic
+- **Background jobs:** APScheduler for monthly reminder scheduling
+- **Email templates:** Jinja2
+
+## Architecture
 
 ```text
-KredoBook
-
-React Frontend
-      ↓
-FastAPI Backend
-      ↓
-Neon PostgreSQL
+React / Vite frontend
+        | HTTP + JWT
+        v
+FastAPI API
+ |- authentication and role checks
+ |- loan, payment, borrower, and reminder services
+ |- protected screenshot storage
+ `- monthly reminder scheduler
+        |
+        v
+PostgreSQL / Neon
 ```
 
-* **Frontend**: React (Vite), SPA routing via React Router DOM, centralized `AuthContext`, dark glassmorphic responsive UI, responsive mobile navigation drawer.
-* **Backend**: FastAPI (Python 3.10+), SQLAlchemy 2.0 ORM, Pydantic v2 data validation, structured logging, centralized HTTP error masking.
-* **Database**: Neon Serverless PostgreSQL with SSL connection pooling.
-* **Storage**: Protected screenshot storage with MIME verification and access token authorization.
-* **Notifications**: Informational SMTP email reminder engine with fallback logger and idempotent database audit logging.
+## Project structure
 
----
+```text
+Loan_tracker/
+├── backend/
+│   ├── app/
+│   │   ├── models/       # SQLAlchemy domain models
+│   │   ├── routes/       # FastAPI endpoints
+│   │   ├── schemas/      # Request and response validation
+│   │   ├── services/     # Loan, payment, email, and reminder logic
+│   │   └── utils/        # Security and upload helpers
+│   ├── alembic/          # Database migrations
+│   ├── tests/            # API and workflow tests
+│   └── requirements.txt
+├── frontend/
+│   ├── src/pages/        # Admin, borrower, login, and home pages
+│   ├── src/services/     # API client modules
+│   └── src/context/      # Authentication state
+├── .env.example
+└── README.md
+```
 
-## 2. Features & Functional Modules
+## Getting started
 
-### Roles & Access Control
-- **ADMIN**:
-  - Full management of borrowers (create, activate, deactivate, toggle email reminder preference).
-  - Loan lifecycle management (create loans, update notes/terms, inspect multi-loan borrower accounts).
-  - Repayment verification hub (review payment screenshots, approve payments to reduce balances, reject with explicit reasons).
-  - Trigger manual or scheduled monthly reminder dispatch.
-  - Comprehensive portfolio statistics and audit logs.
-- **BORROWER**:
-  - Secure login and isolated personal dashboard.
-  - View all individual active and completed loans with independent progress metrics.
-  - Submit repayment records with payment amount, month, date, and payment screenshot proof.
-  - View historical payments with real-time status (`PENDING`, `VERIFIED`, `REJECTED`).
-  - View and download verified screenshot receipts.
+### Prerequisites
 
----
+- Python 3.10 or newer
+- Node.js 18 or newer
+- A PostgreSQL database (a Neon PostgreSQL database is supported)
 
-## 3. Monthly Email Reminder System
+### 1. Configure environment variables
 
-On the 1st of every month (or when triggered by admin/cron), the system scans eligible borrowers and dispatches an informational reminder.
+Create a `.env.local` file in the repository root. Start from [`.env.example`](.env.example) and supply real values. The backend reads `.env.local` from the project root.
 
-### Key Rules
-1. **Informational Only**:
-   - The scheduler **NEVER** creates payment records.
-   - The scheduler **NEVER** marks payments as paid.
-   - The scheduler **NEVER** alters loan balances or deducts funds.
-2. **Borrower Eligibility**:
-   - Borrower is active (`is_active = true`).
-   - Borrower has reminders enabled (`monthly_reminder_enabled = true`).
-   - Borrower has at least one `ACTIVE` loan with `remaining_balance > 0`.
-   - Borrowers with only `PAID` or `CANCELLED` loans are automatically skipped.
-3. **Multi-Loan Aggregation**:
-   - If a borrower has multiple active loans, they receive **one single email** summarizing all active loans with their respective principal, total payable, verified paid, remaining balance, and minimum monthly payment.
-4. **Idempotency Guarantee**:
-   - Tracked in `monthly_reminder_logs` with a unique constraint `(borrower_id, reminder_month)`.
-   - Prevents duplicate reminders even across multiple backend worker instances.
-
----
-
-## 4. Security Hardening & Concurrency Protection
-
-* **Authentication**: Password hashing with Bcrypt; stateless JWT Bearer tokens with configurable expiration; inactive user login blocking.
-* **Tenant Isolation**: Strict ownership checks preventing borrowers from accessing other borrowers' loans, payments, or screenshot proofs (`HTTP 403 / 404`).
-* **Protected File Uploads**:
-  - Uploaded files are stored outside the public document root.
-  - Validated by MIME type inspection (`image/jpeg`, `image/png`, `image/webp`, `image/heic`).
-  - Strict 5MB file size limit enforced before writing to disk.
-  - Safe randomized UUID filenames to prevent path traversal or script execution.
-  - Only authenticated admins and the owning borrower can view/download screenshots.
-* **Payment Concurrency & State Machine**:
-  - Strict transitions: `PENDING → VERIFIED` or `PENDING → REJECTED`.
-  - Once a payment is `VERIFIED` or `REJECTED`, subsequent review attempts return `HTTP 400 Bad Request`.
-* **CORS & Environment**:
-  - CORS strictly configured via `CORS_ORIGINS` environment variable (no open wildcards in production).
-  - Internal stack traces and database credentials are sanitised from production API responses.
-
----
-
-## 5. Financial Data Integrity
-
-* **Precision**: All financial columns (`loan_amount`, `total_payable`, `minimum_monthly_payment`, `amount`, `total_outstanding`) use PostgreSQL `NUMERIC(15, 2)`.
-* **Balance Invariant**:
-  $$\text{remaining\_balance} = \text{total\_payable} - \sum(\text{VERIFIED payments})$$
-* Pending and Rejected payments never reduce loan balances.
-* Overpayments exceeding remaining balance are rejected at submission.
-* Total payable cannot be updated below the already verified paid amount.
-
----
-
-## 6. Environment Variables
-
-### Backend Configuration (`backend/.env`)
+Important values:
 
 ```env
-# Neon PostgreSQL Connection (Direct or Pooled)
-DATABASE_URL=postgresql://neondb_owner:YOUR_PASSWORD@ep-sample-pooler.us-east-2.aws.neon.tech/neondb?sslmode=require
+DATABASE_URL=postgresql://USER:PASSWORD@HOST/DATABASE?sslmode=require
+JWT_SECRET=replace-with-a-long-random-secret
+CORS_ORIGINS=http://localhost:5173
 
-# JWT Secret & Expiration
-JWT_SECRET=generate_with_openssl_rand_hex_32
-JWT_ALGORITHM=HS256
-ACCESS_TOKEN_EXPIRE_MINUTES=1440
-
-# Allowed CORS Origins (Comma-separated)
-CORS_ORIGINS=http://localhost:5173,http://localhost:3000,https://your-domain.com
-
-# SMTP Email Configuration
 EMAIL_ENABLED=false
-EMAIL_HOST=smtp.sendgrid.net
+EMAIL_HOST=smtp.example.com
 EMAIL_PORT=587
-EMAIL_USERNAME=apikey
-EMAIL_PASSWORD=your_smtp_key
-EMAIL_FROM=notifications@yourdomain.com
-
-# Upload Settings
-UPLOAD_MAX_SIZE=5242880
-UPLOAD_DIR=uploads/screenshots
+EMAIL_USERNAME=...
+EMAIL_PASSWORD=...
+EMAIL_FROM=notifications@example.com
 ```
 
-### Frontend Configuration (`frontend/.env`)
+For the frontend, create `frontend/.env` when the API is not hosted at the default local address:
 
 ```env
-# Backend API Base URL
 VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
----
+Never commit real database credentials, JWT secrets, or SMTP passwords.
 
-## 7. Local Development Guide
+### 2. Install backend dependencies and migrate the database
 
-### 1. Backend
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r backend\requirements.txt
 
-```bash
-cd backend
-python -m venv ..\.venv
-..\.venv\Scripts\activate   # Windows
-# source ../.venv/bin/activate # macOS/Linux
-
-pip install -r requirements.txt
-uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+Set-Location backend
+alembic upgrade head
 ```
 
-### 2. Frontend
+Use a direct (non-`-pooler`) Neon connection for Alembic migrations when one is available.
 
-```bash
-cd frontend
+### 3. Start the API
+
+From `backend/`:
+
+```powershell
+..\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
+```
+
+Useful local endpoints:
+
+- API health: `http://127.0.0.1:8000/health`
+- OpenAPI/Swagger: `http://127.0.0.1:8000/docs`
+
+### 4. Start the frontend
+
+In a separate terminal:
+
+```powershell
+Set-Location frontend
 npm install
 npm run dev
 ```
 
-The application will be accessible at:
-- **Frontend**: `http://localhost:5173`
-- **Backend Swagger Docs**: `http://127.0.0.1:8000/docs`
-- **Health Check**: `http://127.0.0.1:8000/health`
+Open `http://localhost:5173`.
 
----
+## API overview
 
-## 8. Database Migrations (Alembic)
+| Area | Main endpoints |
+| --- | --- |
+| Health | `GET /health` |
+| Authentication | `POST /auth/login`, `GET /auth/me` |
+| Borrowers | `GET/POST /borrowers`, `PUT/DELETE /borrowers/{id}` |
+| Admin loans | `GET/POST /loans`, `GET/PUT/DELETE /loans/{id}`, `GET /loans/stats` |
+| Borrower loans | `GET /my/loans`, `GET /my/loans/{id}`, `GET /my/stats` |
+| Payments | `GET /payments`, `GET /payments/pending`, approve/reject endpoints, protected screenshot endpoint |
+| Borrower payments | `POST /my/payments`, `GET /my/payments` |
+| Reminders | `POST /reminders/send-monthly`, `GET /reminders/logs` |
 
-Run all migrations against your Neon database:
+Refer to the running API’s Swagger interface for the complete request and response schemas.
 
-```bash
-cd backend
-alembic upgrade head
+## Monthly reminder rules
+
+The reminder process is informational only. It does not create payments, verify payments, or alter loan balances. A borrower is eligible only when they are active, have reminders enabled, and have at least one active loan with a positive remaining balance. Multiple active loans are consolidated into one reminder per borrower per month.
+
+## Testing and quality checks
+
+Frontend checks:
+
+```powershell
+Set-Location frontend
+npm run lint
+npm run build
 ```
 
-To create a new migration after updating SQLAlchemy models:
+Backend tests:
 
-```bash
-alembic revision --autogenerate -m "describe_changes"
-alembic upgrade head
+```powershell
+Set-Location backend
+..\.venv\Scripts\python.exe -m pytest tests -v
 ```
 
----
+The current backend tests use the configured database connection. Point `DATABASE_URL` to an isolated test database before running them; do not run test cleanup against production data.
 
-## 9. Production Deployment Guide
+## Deployment notes
 
-### 1. Database (Neon PostgreSQL)
-1. Verify database compute endpoints and connection pooling in the [Neon Console](https://console.neon.tech).
-2. Set `DATABASE_URL` with `sslmode=require`.
+- Set a strong, unique `JWT_SECRET` and production-only `CORS_ORIGINS`.
+- Use a pooled database URL for the running web application and a direct database URL for migrations.
+- Set `EMAIL_ENABLED=true` only after verifying SMTP credentials and sender configuration.
+- Persist the backend upload directory or use managed object storage in production; uploaded payment proofs should not be publicly served.
+- Configure frontend single-page-app fallback routing on the hosting provider.
 
-### 2. Backend Deployment (e.g. Render, Railway, AWS ECS, VPS)
-1. Set all environment variables defined in `backend/.env.example`.
-2. Run database migrations: `alembic upgrade head`.
-3. Start production ASGI server:
-   ```bash
-   uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 4
-   ```
-4. Verify `/health` returns `{"status": "ok", "database": "connected"}`.
+## License
 
-### 3. Frontend Deployment (e.g. Vercel, Netlify, Cloudflare Pages)
-1. Set `VITE_API_BASE_URL` to your production backend domain.
-2. Build static bundle: `npm run build`.
-3. Deploy output folder `dist/` with single-page application fallback rules (`index.html`).
-
----
-
-## 10. API Reference
-
-| Method | Endpoint | Access | Description |
-|---|---|---|---|
-| `GET` | `/health` | Public | System & database health check |
-| `POST` | `/auth/login` | Public | Authenticate user & issue JWT |
-| `GET` | `/auth/me` | Authenticated | Retrieve profile of authenticated user |
-| `GET` | `/borrowers` | Admin | List all registered borrowers |
-| `POST` | `/borrowers` | Admin | Register new borrower account |
-| `PATCH` | `/borrowers/{id}` | Admin | Update borrower status / details |
-| `PATCH` | `/borrowers/{id}/reminders` | Admin / Owner | Toggle monthly reminder preference |
-| `GET` | `/loans` | Admin | List all loans in portfolio |
-| `POST` | `/loans` | Admin | Issue a new loan |
-| `GET` | `/loans/{id}` | Admin | Get loan details and summary |
-| `PATCH` | `/loans/{id}` | Admin | Update loan terms or notes |
-| `GET` | `/my/loans` | Borrower | List current borrower's loans |
-| `GET` | `/my/loans/{id}` | Borrower | Get borrower's specific loan details |
-| `POST` | `/my/payments` | Borrower | Submit repayment proof with screenshot |
-| `GET` | `/my/payments` | Borrower | View repayment submission history |
-| `GET` | `/payments` | Admin | View all submitted payments with status filter |
-| `GET` | `/payments/pending` | Admin | List all pending payments awaiting review |
-| `POST` | `/payments/{id}/approve` | Admin | Approve payment and decrease remaining balance |
-| `POST` | `/payments/{id}/reject` | Admin | Reject payment with reason |
-| `GET` | `/payments/{id}/screenshot` | Admin / Owner | View/stream encrypted payment proof |
-| `POST` | `/reminders/send-monthly` | Admin | Trigger monthly payment reminder dispatch |
-| `GET` | `/reminders/logs` | Admin | Audit logs of sent reminder notifications |
-
----
-
-## 11. Testing & Verification
-
-Run the full automated integration test suite:
-
-```bash
-cd backend
-pytest tests/ -v
-```
-
-All 51+ integration tests validate:
-- Authentication & JWT validation
-- Role-based authorization & tenant isolation
-- Multi-loan portfolio calculations & balances
-- Repayment submission, file upload checks, and admin approvals
-- Monthly reminder dispatch, multi-loan aggregation, and idempotency
-#   K r e d o b o o k  
- 
+No license has been specified for this repository.
