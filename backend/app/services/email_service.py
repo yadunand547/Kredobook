@@ -5,8 +5,8 @@ Renders premium Jinja2 HTML templates and sends via SMTP.
 Falls back to plain-text mock when email is disabled or credentials are missing.
 """
 
-import smtplib
 import logging
+import smtplib
 from datetime import date, datetime
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -54,9 +54,25 @@ def send_email(
     if not to_email:
         return False, "Recipient email address is required"
 
-    if not settings.EMAIL_ENABLED or not settings.EMAIL_HOST or not settings.EMAIL_USERNAME:
-        logger.info(f"[EMAIL MOCK] To: {to_email} | Subject: {subject}")
-        return True, None
+    if not settings.EMAIL_ENABLED:
+        error = "Email delivery is disabled. Set EMAIL_ENABLED=true in the deployed backend environment."
+        logger.warning(error)
+        return False, error
+
+    missing_settings = [
+        name
+        for name, value in {
+            "EMAIL_HOST": settings.EMAIL_HOST,
+            "EMAIL_USERNAME": settings.EMAIL_USERNAME,
+            "EMAIL_PASSWORD": settings.EMAIL_PASSWORD,
+            "EMAIL_FROM": settings.EMAIL_FROM,
+        }.items()
+        if not value
+    ]
+    if missing_settings:
+        error = f"Email delivery is not configured. Missing: {', '.join(missing_settings)}."
+        logger.error(error)
+        return False, error
 
     try:
         msg = MIMEMultipart("alternative")
@@ -70,18 +86,16 @@ def send_email(
         msg.attach(MIMEText(body_html, "html", "utf-8"))
 
         if settings.EMAIL_PORT == 465:
-            server = smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=15)
+            with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20) as server:
+                server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
+                server.sendmail(settings.EMAIL_FROM, [to_email], msg.as_string())
         else:
-            server = smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=15)
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-
-        if settings.EMAIL_USERNAME and settings.EMAIL_PASSWORD:
-            server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
-
-        server.sendmail(settings.EMAIL_FROM, [to_email], msg.as_string())
-        server.quit()
+            with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
+                server.sendmail(settings.EMAIL_FROM, [to_email], msg.as_string())
 
         logger.info(f"Email sent to {to_email} (Subject: {subject})")
         return True, None
@@ -106,14 +120,14 @@ def send_welcome_email(
     borrower_email: str,
     password: Optional[str] = None,
     created_date: Optional[str] = None,
-    frontend_url: str = "http://localhost:5173",
+    frontend_url: Optional[str] = None,
 ) -> Tuple[bool, Optional[str]]:
     subject = "Welcome to KredoBook!"
     ctx = {
         "borrower_name": borrower_name,
         "borrower_email": borrower_email,
         "created_date": created_date or _fmt_date(date.today()),
-        "frontend_url": frontend_url,
+        "frontend_url": frontend_url or settings.FRONTEND_URL,
     }
     try:
         html_body = _render_template("welcome.html", ctx)
@@ -124,7 +138,7 @@ def send_welcome_email(
         f"Dear {borrower_name},\n\n"
         f"Welcome to KredoBook! Your borrower account has been created.\n\n"
         f"Email: {borrower_email}\nStatus: Active\n\n"
-        f"Login at: {frontend_url}\n\n"
+        f"Login at: {frontend_url or settings.FRONTEND_URL}\n\n"
         f"Regards,\nKredoBook Team\nkredobook@gmail.com"
     )
     return send_email(to_email=borrower_email, subject=subject, body_html=html_body, body_text=plain_text)
@@ -139,7 +153,7 @@ def send_new_loan_email(
     minimum_monthly_payment: float,
     loan_date: str,
     notes: Optional[str] = None,
-    frontend_url: str = "http://localhost:5173",
+    frontend_url: Optional[str] = None,
 ) -> Tuple[bool, Optional[str]]:
     subject = "KredoBook - New Loan Added To Your Account"
     ctx = {
@@ -154,7 +168,7 @@ def send_new_loan_email(
         "loan_amount_fmt": _fmt_currency(loan_amount),
         "total_payable_fmt": _fmt_currency(total_payable),
         "minimum_monthly_payment_fmt": _fmt_currency(minimum_monthly_payment),
-        "frontend_url": frontend_url,
+        "frontend_url": frontend_url or settings.FRONTEND_URL,
     }
     try:
         html_body = _render_template("new_loan.html", ctx)
@@ -179,7 +193,7 @@ def send_monthly_reminder_email(
     total_outstanding: float,
     active_loans: List[Dict[str, Any]],
     reminder_month: str,
-    frontend_url: str = "http://localhost:5173",
+    frontend_url: Optional[str] = None,
 ) -> Tuple[bool, Optional[str]]:
     subject = "KredoBook - Monthly Loan Payment Reminder"
     enriched_loans = []
@@ -201,7 +215,7 @@ def send_monthly_reminder_email(
         "total_outstanding_fmt": _fmt_currency(total_outstanding),
         "active_loans": enriched_loans,
         "reminder_month": reminder_month,
-        "frontend_url": frontend_url,
+        "frontend_url": frontend_url or settings.FRONTEND_URL,
     }
     try:
         html_body = _render_template("monthly_reminder.html", ctx)

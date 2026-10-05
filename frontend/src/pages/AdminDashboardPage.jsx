@@ -559,6 +559,10 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
       flash(
         `Monthly reminders executed for ${res.target_month}: ${res.sent} sent, ${res.skipped} skipped, ${res.failed} failed.`
       );
+      if (res.failed > 0) {
+        const firstFailure = res.details?.find((item) => item.status === 'FAILED');
+        setError(firstFailure?.error || 'One or more reminder emails could not be delivered. Check the SMTP configuration.');
+      }
     } catch (err) {
       setError(err.message || 'Failed to dispatch monthly reminders.');
     } finally {
