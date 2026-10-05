@@ -7,8 +7,9 @@ Loads settings from environment variables / .env files.
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Project root is the parent of the 'backend' directory
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+# Project root is the parent of the 'backend' directory.
+BACKEND_ROOT = Path(__file__).resolve().parent.parent
+PROJECT_ROOT = BACKEND_ROOT.parent
 
 
 class Settings(BaseSettings):
@@ -21,14 +22,13 @@ class Settings(BaseSettings):
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,https://kredobook.vercel.app"
     FRONTEND_URL: str = "https://kredobook.vercel.app"
 
-    # Email Reminder Configuration (KredoBook)
-    EMAIL_HOST: str = "smtp.gmail.com"
-    # Gmail supports both 465 (implicit SSL) and 587 (STARTTLS). Prefer 465 on Render.
-    EMAIL_PORT: int = 465
-    EMAIL_USERNAME: str = ""
-    EMAIL_PASSWORD: str = ""
+    # Transactional email is delivered through Brevo's HTTPS API.  This works
+    # on Render Free, where outbound SMTP ports are blocked.
+    EMAIL_PROVIDER: str = "brevo"
+    BREVO_API_KEY: str = ""
     EMAIL_FROM: str = "kredobook@gmail.com"
     EMAIL_FROM_NAME: str = "KredoBook"
+    # Email must be deliberately enabled through an environment variable.
     EMAIL_ENABLED: bool = False
 
     # Uploads
@@ -36,9 +36,13 @@ class Settings(BaseSettings):
 
 
     model_config = SettingsConfigDict(
+        # Support both documented locations. Root-level files take precedence,
+        # while backend/.env keeps local FastAPI-only configuration convenient.
         env_file=(
-            str(PROJECT_ROOT / ".env.local"),
+            str(BACKEND_ROOT / ".env"),
+            str(BACKEND_ROOT / ".env.local"),
             str(PROJECT_ROOT / ".env"),
+            str(PROJECT_ROOT / ".env.local"),
         ),
         env_file_encoding="utf-8",
         extra="ignore",

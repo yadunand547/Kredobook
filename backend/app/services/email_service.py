@@ -1,23 +1,22 @@
 """
 KredoBook Email Service
 
-Renders premium Jinja2 HTML templates and sends via SMTP.
-Falls back to plain-text mock when email is disabled or credentials are missing.
+Renders premium Jinja2 HTML templates and sends through Brevo's HTTPS API.
+Returns a clear failure when delivery is disabled or Brevo is not configured.
 """
 
 import logging
-import smtplib
 from datetime import date, datetime
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
+import httpx
 
 from app.config import settings
 
 logger = logging.getLogger("loantracker.email")
+_BREVO_SEND_EMAIL_URL = "https://api.brevo.com/v3/smtp/email"
 
 # Template Engine Setup
 _TEMPLATES_DIR = Path(__file__).resolve().parent.parent.parent / "email" / "templates"
@@ -51,6 +50,7 @@ def send_email(
     body_html: str,
     body_text: Optional[str] = None,
 ) -> Tuple[bool, Optional[str]]:
+    to_email = (to_email or "").strip()
     if not to_email:
         return False, "Recipient email address is required"
 
@@ -59,17 +59,19 @@ def send_email(
         logger.warning(error)
         return False, error
 
-    smtp_username = settings.EMAIL_USERNAME.strip()
-    # Google displays App Passwords in groups of four characters. SMTP expects no spaces.
-    smtp_password = "".join(settings.EMAIL_PASSWORD.split())
+    provider = settings.EMAIL_PROVIDER.strip().lower()
+    api_key = settings.BREVO_API_KEY.strip()
     sender_email = settings.EMAIL_FROM.strip()
+
+    if provider != "brevo":
+        error = "Unsupported EMAIL_PROVIDER. Set EMAIL_PROVIDER=brevo."
+        logger.error(error)
+        return False, error
 
     missing_settings = [
         name
         for name, value in {
-            "EMAIL_HOST": settings.EMAIL_HOST,
-            "EMAIL_USERNAME": smtp_username,
-            "EMAIL_PASSWORD": smtp_password,
+            "BREVO_API_KEY": api_key,
             "EMAIL_FROM": sender_email,
         }.items()
         if not value
@@ -80,35 +82,33 @@ def send_email(
         return False, error
 
     try:
-        msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject
-        sender_header = f"{settings.EMAIL_FROM_NAME} <{sender_email}>"
-        msg["From"] = sender_header
-        msg["To"] = to_email
-
+        payload = {
+            "sender": {"email": sender_email, "name": settings.EMAIL_FROM_NAME},
+            "to": [{"email": to_email}],
+            "subject": subject,
+            "htmlContent": body_html,
+        }
         if body_text:
-            msg.attach(MIMEText(body_text, "plain", "utf-8"))
-        msg.attach(MIMEText(body_html, "html", "utf-8"))
+            payload["textContent"] = body_text
 
-        if settings.EMAIL_PORT == 465:
-            logger.info("Sending email through SMTP over SSL (port 465) to %s", to_email)
-            with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20) as server:
-                server.login(smtp_username, smtp_password)
-                server.sendmail(sender_email, [to_email], msg.as_string())
-        else:
-            logger.info("Sending email through SMTP with STARTTLS (port %s) to %s", settings.EMAIL_PORT, to_email)
-            with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20) as server:
-                server.ehlo()
-                server.starttls()
-                server.ehlo()
-                server.login(smtp_username, smtp_password)
-                server.sendmail(sender_email, [to_email], msg.as_string())
+        logger.info("Sending email through Brevo HTTPS API to %s", to_email)
+        response = httpx.post(
+            _BREVO_SEND_EMAIL_URL,
+            headers={"api-key": api_key, "accept": "application/json"},
+            json=payload,
+            timeout=20.0,
+        )
+        response.raise_for_status()
 
         logger.info(f"Email sent to {to_email} (Subject: {subject})")
         return True, None
 
-    except Exception as e:
-        err_msg = f"SMTP Error sending to {to_email}: {str(e)}"
+    except httpx.HTTPStatusError as e:
+        err_msg = f"Brevo API error sending to {to_email}: HTTP {e.response.status_code}"
+        logger.exception(err_msg)
+        return False, err_msg
+    except httpx.HTTPError as e:
+        err_msg = f"Brevo API error sending to {to_email}: {str(e)}"
         logger.exception(err_msg)
         return False, err_msg
 

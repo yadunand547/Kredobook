@@ -138,7 +138,7 @@ def test_email_dispatch(
     to_email: str = Query(..., description="Recipient email address to test"),
 ):
     """
-    Send a test email using configured SMTP settings.
+    Send a test email using the configured Brevo email service.
     Admin-only endpoint for verifying email credentials.
     """
     from app.services.email_service import send_email
@@ -151,7 +151,7 @@ def test_email_dispatch(
       </div>
       <div style="background:#fff;padding:32px;border-radius:0 0 12px 12px;">
         <h2 style="color:#1E3A8A;">&#10003; Test Email Successful</h2>
-        <p style="color:#374151;">Your KredoBook SMTP configuration is working correctly.</p>
+        <p style="color:#374151;">Your KredoBook Brevo email configuration is working correctly.</p>
         <p style="color:#6B7280;font-size:13px;">This is an automated test from KredoBook. Please do not reply.</p>
       </div>
     </div>
