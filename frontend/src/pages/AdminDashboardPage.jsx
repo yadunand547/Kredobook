@@ -470,10 +470,19 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
     setFormError(null);
     setFormSubmitting(true);
     try {
-      await createBorrower({ ...borrowerForm, phone: borrowerForm.phone || undefined });
+      const createdBorrower = await createBorrower({ ...borrowerForm, phone: borrowerForm.phone || undefined });
       setBorrowerForm({ name: '', email: '', phone: '', password: '' });
       setShowBorrowerModal(false);
-      flash('Borrower created successfully.');
+      if (createdBorrower.email_delivery_status === 'SENT') {
+        flash('Borrower created and welcome email sent successfully.');
+      } else {
+        flash('Borrower created successfully.');
+        setError(
+          `Welcome email was not sent: ${
+            createdBorrower.email_delivery_error || 'email delivery was skipped. Check SMTP configuration.'
+          }`
+        );
+      }
       await loadBorrowers();
       await loadStats();
     } catch (err) {

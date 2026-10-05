@@ -13,7 +13,7 @@ logger = logging.getLogger("loantracker.borrowers")
 from app.database import get_db
 from app.dependencies import require_admin
 from app.models.user import User, UserRole
-from app.schemas.user import BorrowerCreate, BorrowerUpdate, UserOut
+from app.schemas.user import BorrowerCreate, BorrowerCreateResponse, BorrowerUpdate, UserOut
 from app.utils.security import hash_password
 
 router = APIRouter(
@@ -23,7 +23,7 @@ router = APIRouter(
 )
 
 
-@router.post("", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=BorrowerCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_borrower(
     borrower_data: BorrowerCreate,
     db: Session = Depends(get_db),
@@ -58,6 +58,8 @@ def create_borrower(
     db.refresh(new_borrower)
 
     # Dispatch Welcome Email to borrower
+    email_delivery_status = "SKIPPED"
+    email_delivery_error = None
     if new_borrower.email:
         try:
             from app.services.email_service import send_welcome_email
@@ -67,15 +69,25 @@ def create_borrower(
                 password=borrower_data.password,
             )
             if ok:
+                email_delivery_status = "SENT"
                 logger.info(f"Welcome email sent to {new_borrower.email}")
             else:
+                email_delivery_status = "FAILED"
+                email_delivery_error = err or "Unknown email delivery error"
                 logger.error(f"Welcome email failed for {new_borrower.email}: {err}")
         except Exception as e:
-            logger.error(f"Exception sending welcome email to {new_borrower.email}: {e}")
+            email_delivery_status = "FAILED"
+            email_delivery_error = str(e)
+            logger.exception(f"Exception sending welcome email to {new_borrower.email}")
     else:
         logger.warning(f"Borrower {new_borrower.name} has no email - skipping welcome email")
 
-    return new_borrower
+    response = UserOut.model_validate(new_borrower).model_dump()
+    response.update(
+        email_delivery_status=email_delivery_status,
+        email_delivery_error=email_delivery_error,
+    )
+    return response
 
 
 @router.get("", response_model=List[UserOut])
@@ -229,4 +241,3 @@ def delete_borrower_permanently(borrower_id: int, db: Session = Depends(get_db))
     db.commit()
 
     return {"detail": "Borrower and associated loans/payments deleted successfully"}
-

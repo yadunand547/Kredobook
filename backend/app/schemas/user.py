@@ -3,7 +3,7 @@ Pydantic schemas for User and Borrower models.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -40,6 +40,13 @@ class BorrowerCreate(BaseModel):
     monthly_reminder_enabled: Optional[bool] = Field(True, description="Enable monthly email reminders")
 
 
+class BorrowerCreateResponse(UserOut):
+    """Created borrower plus the result of its welcome-email attempt."""
+
+    email_delivery_status: Literal["SENT", "FAILED", "SKIPPED"]
+    email_delivery_error: Optional[str] = None
+
+
 class BorrowerUpdate(BaseModel):
     """Schema for Admin updating an existing borrower's details."""
     name: Optional[str] = Field(None, min_length=1, max_length=255)
@@ -47,4 +54,3 @@ class BorrowerUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
     monthly_reminder_enabled: Optional[bool] = None
-
