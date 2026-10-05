@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 !.env.example
+backend/.env
+backend/.env.local
+!backend/.env.example
 
 # Vite environment files: keep examples and the non-secret production API URL.
 frontend/.env

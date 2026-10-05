@@ -1,48 +1,42 @@
-"""
-Global pytest configuration and automatic test data cleanup fixture.
-Ensures that after running test suites, all test-generated records are purged.
+"""Pytest database isolation.
+
+Tests must never connect to or delete data from the configured Neon production
+database.  A shared in-memory SQLite database keeps FastAPI TestClient threads
+and direct service tests on the same isolated database.
 """
 
 import pytest
-from app.database import SessionLocal
-from app.models.user import User, UserRole
-from app.models.loan import Loan
-from app.models.payment import Payment
-from app.models.reminder import ReminderLog
-from app.utils.security import hash_password
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
+
+from app import database
+from app.database import Base
+
+# Import every model before creating tables so all mapped tables are registered
+# in Base.metadata.
+from app.models.loan import Loan  # noqa: F401
+from app.models.payment import Payment  # noqa: F401
+from app.models.reminder import ReminderLog  # noqa: F401
+from app.models.user import User  # noqa: F401
+
+
+_test_engine = create_engine(
+    "sqlite+pysqlite:///:memory:",
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
+)
+
+# Test modules import SessionLocal after this conftest module is loaded, and
+# application dependencies resolve database.SessionLocal at request time.
+database.engine = _test_engine
+database.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=_test_engine)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def clean_db_after_tests():
-    """Runs before and after the entire test suite to guarantee a clean database."""
-    # Yield to let tests execute
+def isolated_test_database():
+    """Create and discard a local test database for the whole test session."""
+    Base.metadata.create_all(bind=_test_engine)
     yield
-
-    # Teardown: purge test data
-    db = SessionLocal()
-    try:
-        db.query(Payment).delete()
-        db.query(Loan).delete()
-        db.query(ReminderLog).delete()
-        db.query(User).filter(User.role == UserRole.BORROWER).delete()
-        db.query(User).filter(User.role == UserRole.ADMIN, User.email != "admin@loantracker.com").delete()
-
-        # Keep main admin
-        admin = db.query(User).filter(User.email == "admin@loantracker.com").first()
-        if not admin:
-            admin = User(
-                name="System Admin",
-                email="admin@loantracker.com",
-                password_hash=hash_password("AdminPass123!"),
-                role=UserRole.ADMIN,
-                is_active=True,
-            )
-            db.add(admin)
-        else:
-            admin.password_hash = hash_password("AdminPass123!")
-            admin.role = UserRole.ADMIN
-            admin.is_active = True
-
-        db.commit()
-    finally:
-        db.close()
+    Base.metadata.drop_all(bind=_test_engine)
+    _test_engine.dispose()

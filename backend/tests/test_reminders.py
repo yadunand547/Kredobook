@@ -14,10 +14,21 @@ from app.models.user import User, UserRole
 from app.models.loan import Loan, LoanStatus
 from app.models.payment import Payment, PaymentStatus
 from app.models.reminder import ReminderLog
+from app.services import reminder_service
 from app.services.reminder_service import send_monthly_reminders_for_all
 from app.utils.security import hash_password
 
 client = TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def mock_reminder_email_delivery(monkeypatch):
+    """Keep reminder behavior tests offline and independent of Brevo credentials."""
+    monkeypatch.setattr(
+        reminder_service,
+        "send_monthly_reminder_email",
+        lambda **kwargs: (True, None),
+    )
 
 
 @pytest.fixture(scope="module")
