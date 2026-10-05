@@ -59,13 +59,18 @@ def send_email(
         logger.warning(error)
         return False, error
 
+    smtp_username = settings.EMAIL_USERNAME.strip()
+    # Google displays App Passwords in groups of four characters. SMTP expects no spaces.
+    smtp_password = "".join(settings.EMAIL_PASSWORD.split())
+    sender_email = settings.EMAIL_FROM.strip()
+
     missing_settings = [
         name
         for name, value in {
             "EMAIL_HOST": settings.EMAIL_HOST,
-            "EMAIL_USERNAME": settings.EMAIL_USERNAME,
-            "EMAIL_PASSWORD": settings.EMAIL_PASSWORD,
-            "EMAIL_FROM": settings.EMAIL_FROM,
+            "EMAIL_USERNAME": smtp_username,
+            "EMAIL_PASSWORD": smtp_password,
+            "EMAIL_FROM": sender_email,
         }.items()
         if not value
     ]
@@ -77,7 +82,7 @@ def send_email(
     try:
         msg = MIMEMultipart("alternative")
         msg["Subject"] = subject
-        sender_header = f"{settings.EMAIL_FROM_NAME} <{settings.EMAIL_FROM}>"
+        sender_header = f"{settings.EMAIL_FROM_NAME} <{sender_email}>"
         msg["From"] = sender_header
         msg["To"] = to_email
 
@@ -86,23 +91,25 @@ def send_email(
         msg.attach(MIMEText(body_html, "html", "utf-8"))
 
         if settings.EMAIL_PORT == 465:
+            logger.info("Sending email through SMTP over SSL (port 465) to %s", to_email)
             with smtplib.SMTP_SSL(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20) as server:
-                server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
-                server.sendmail(settings.EMAIL_FROM, [to_email], msg.as_string())
+                server.login(smtp_username, smtp_password)
+                server.sendmail(sender_email, [to_email], msg.as_string())
         else:
+            logger.info("Sending email through SMTP with STARTTLS (port %s) to %s", settings.EMAIL_PORT, to_email)
             with smtplib.SMTP(settings.EMAIL_HOST, settings.EMAIL_PORT, timeout=20) as server:
                 server.ehlo()
                 server.starttls()
                 server.ehlo()
-                server.login(settings.EMAIL_USERNAME, settings.EMAIL_PASSWORD)
-                server.sendmail(settings.EMAIL_FROM, [to_email], msg.as_string())
+                server.login(smtp_username, smtp_password)
+                server.sendmail(sender_email, [to_email], msg.as_string())
 
         logger.info(f"Email sent to {to_email} (Subject: {subject})")
         return True, None
 
     except Exception as e:
         err_msg = f"SMTP Error sending to {to_email}: {str(e)}"
-        logger.error(err_msg)
+        logger.exception(err_msg)
         return False, err_msg
 
 

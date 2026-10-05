@@ -23,7 +23,8 @@ class Settings(BaseSettings):
 
     # Email Reminder Configuration (KredoBook)
     EMAIL_HOST: str = "smtp.gmail.com"
-    EMAIL_PORT: int = 587
+    # Gmail supports both 465 (implicit SSL) and 587 (STARTTLS). Prefer 465 on Render.
+    EMAIL_PORT: int = 465
     EMAIL_USERNAME: str = ""
     EMAIL_PASSWORD: str = ""
     EMAIL_FROM: str = "kredobook@gmail.com"
