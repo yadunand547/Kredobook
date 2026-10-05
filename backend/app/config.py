@@ -18,16 +18,16 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "change-me-in-production-super-secret-jwt-key-minimum-32bytes"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours
-    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000"
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000,http://127.0.0.1:5173,http://127.0.0.1:3000,https://kredobook.vercel.app"
 
     # Email Reminder Configuration (KredoBook)
     EMAIL_HOST: str = "smtp.gmail.com"
     EMAIL_PORT: int = 587
-    EMAIL_USERNAME: str = "kredobook@gmail.com"
-    EMAIL_PASSWORD: str = "teyu vgtl jjwx jkyg"
+    EMAIL_USERNAME: str = ""
+    EMAIL_PASSWORD: str = ""
     EMAIL_FROM: str = "kredobook@gmail.com"
     EMAIL_FROM_NAME: str = "KredoBook"
-    EMAIL_ENABLED: bool = True
+    EMAIL_ENABLED: bool = False
 
     # Uploads
     UPLOAD_MAX_SIZE: int = 5 * 1024 * 1024  # 5 MB
