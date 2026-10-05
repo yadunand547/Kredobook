@@ -1,0 +1,149 @@
+﻿{% extends "base.html" %}
+{% block title %}KredoBook - New Loan Added{% endblock %}
+{% block content %}
+
+<!-- HERO BANNER -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="background:linear-gradient(180deg,#EFF6FF 0%,#ffffff 100%);padding:40px 40px 0;text-align:center;">
+      <div style="display:inline-block;background:linear-gradient(135deg,#2563EB,#3B82F6);border-radius:50%;width:64px;height:64px;text-align:center;margin-bottom:20px;">
+        <span style="font-size:28px;line-height:64px;display:block;">💰</span>
+      </div>
+      <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#1E3A8A;letter-spacing:-0.5px;">New Loan Added</h1>
+      <p style="margin:0 0 28px;font-size:15px;color:#64748B;line-height:1.6;">
+        Hello <strong style="color:#1E40AF;">{{ borrower_name }}</strong>, a new loan has been added to your KredoBook account.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<!-- 4-COLUMN STATS CARDS -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:28px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <!-- Card 1: Loan Amount -->
+          <td width="48%" style="background:linear-gradient(135deg,#EFF6FF,#DBEAFE);border-radius:12px;border:1px solid #BFDBFE;padding:20px;text-align:center;vertical-align:top;">
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#2563EB;text-transform:uppercase;letter-spacing:1px;">Loan Amount</p>
+            <p style="margin:0;font-size:22px;font-weight:800;color:#1E3A8A;">{{ loan_amount_fmt }}</p>
+          </td>
+          <td width="4%">&nbsp;</td>
+          <!-- Card 2: Total Payable -->
+          <td width="48%" style="background:linear-gradient(135deg,#F0FDF4,#DCFCE7);border-radius:12px;border:1px solid #BBF7D0;padding:20px;text-align:center;vertical-align:top;">
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:1px;">Total Payable</p>
+            <p style="margin:0;font-size:22px;font-weight:800;color:#065F46;">{{ total_payable_fmt }}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:12px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+        <tr>
+          <!-- Card 3: Monthly Min -->
+          <td width="48%" style="background:linear-gradient(135deg,#FFF7ED,#FFEDD5);border-radius:12px;border:1px solid #FED7AA;padding:20px;text-align:center;vertical-align:top;">
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#EA580C;text-transform:uppercase;letter-spacing:1px;">Monthly Minimum</p>
+            <p style="margin:0;font-size:22px;font-weight:800;color:#9A3412;">{{ minimum_monthly_payment_fmt }}</p>
+          </td>
+          <td width="4%">&nbsp;</td>
+          <!-- Card 4: Loan Date -->
+          <td width="48%" style="background:linear-gradient(135deg,#F5F3FF,#EDE9FE);border-radius:12px;border:1px solid #DDD6FE;padding:20px;text-align:center;vertical-align:top;">
+            <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#7C3AED;text-transform:uppercase;letter-spacing:1px;">Loan Date</p>
+            <p style="margin:0;font-size:22px;font-weight:800;color:#4C1D95;">{{ loan_date }}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- REMINDER BOX -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:24px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border-radius:12px;border-left:4px solid #F59E0B;">
+        <tr>
+          <td style="padding:18px 20px;">
+            <p style="margin:0;font-size:13px;font-weight:700;color:#92400E;">&#9888;&nbsp; Payment Reminder</p>
+            <p style="margin:8px 0 0;font-size:13px;color:#78350F;line-height:1.6;">
+              Please remember to make your monthly payment <strong>before the 2nd of every month</strong>. Late payments may affect your account standing.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- LOAN DETAILS TABLE -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:24px 40px 0;">
+      <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:1px;">Loan Summary</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;">
+        <tr>
+          <td style="background:linear-gradient(90deg,#1E40AF,#2563EB);padding:12px 20px;">
+            <p style="margin:0;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);letter-spacing:1.5px;text-transform:uppercase;">Loan Details</p>
+          </td>
+        </tr>
+        <tr><td style="padding:14px 20px;border-bottom:1px solid #E2E8F0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-size:13px;color:#6B7280;width:55%;">Loan Amount</td>
+              <td style="font-size:14px;font-weight:700;color:#1E293B;text-align:right;">{{ loan_amount_fmt }}</td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:14px 20px;border-bottom:1px solid #E2E8F0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-size:13px;color:#6B7280;width:55%;">Total Payable</td>
+              <td style="font-size:14px;font-weight:700;color:#1E293B;text-align:right;">{{ total_payable_fmt }}</td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:14px 20px;border-bottom:1px solid #E2E8F0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-size:13px;color:#6B7280;width:55%;">Minimum Monthly Payment</td>
+              <td style="font-size:14px;font-weight:700;color:#1E293B;text-align:right;">{{ minimum_monthly_payment_fmt }}</td>
+            </tr>
+          </table>
+        </td></tr>
+        <tr><td style="padding:14px 20px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-size:13px;color:#6B7280;width:55%;">Loan Date</td>
+              <td style="font-size:14px;font-weight:700;color:#1E293B;text-align:right;">{{ loan_date }}</td>
+            </tr>
+          </table>
+        </td></tr>
+        {% if notes %}
+        <tr><td style="padding:14px 20px;border-top:1px solid #E2E8F0;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+            <tr>
+              <td style="font-size:13px;color:#6B7280;width:55%;">Notes</td>
+              <td style="font-size:14px;color:#1E293B;text-align:right;">{{ notes }}</td>
+            </tr>
+          </table>
+        </td></tr>
+        {% endif %}
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- CTA BUTTON -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:32px 40px 36px;text-align:center;">
+      <a href="{{ frontend_url }}" style="display:inline-block;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:15px 36px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(37,99,235,0.35);">
+        View My Loan &rarr;
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

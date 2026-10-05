@@ -1,0 +1,139 @@
+﻿{% extends "base.html" %}
+{% block title %}KredoBook - Monthly Payment Reminder{% endblock %}
+{% block content %}
+
+<!-- HERO BANNER -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="background:linear-gradient(180deg,#EFF6FF 0%,#ffffff 100%);padding:40px 40px 0;text-align:center;">
+      <div style="display:inline-block;background:linear-gradient(135deg,#F59E0B,#D97706);border-radius:50%;width:64px;height:64px;text-align:center;margin-bottom:20px;">
+        <span style="font-size:28px;line-height:64px;display:block;">&#128276;</span>
+      </div>
+      <h1 style="margin:0 0 8px;font-size:26px;font-weight:800;color:#1E3A8A;letter-spacing:-0.5px;">Monthly Reminder</h1>
+      <p style="margin:0 0 28px;font-size:15px;color:#64748B;line-height:1.6;">
+        Hello <strong style="color:#1E40AF;">{{ borrower_name }}</strong>, this is a friendly reminder about your active loan payments.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<!-- TOTAL OUTSTANDING HERO CARD -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:28px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(135deg,#1E40AF 0%,#2563EB 60%,#3B82F6 100%);border-radius:14px;overflow:hidden;">
+        <tr>
+          <td style="padding:32px;text-align:center;">
+            <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.7);letter-spacing:2.5px;text-transform:uppercase;">Total Outstanding Balance</p>
+            <p style="margin:0 0 4px;font-size:42px;font-weight:900;color:#ffffff;letter-spacing:-1px;">{{ total_outstanding_fmt }}</p>
+            <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.6);">{{ reminder_month }}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- ACTIVE LOANS LOOP -->
+{% for loan in active_loans %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:{% if loop.first %}20px{% else %}12px{% endif %} 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.04);">
+        <!-- Loan Card Header -->
+        <tr>
+          <td style="background:#F8FAFC;padding:14px 20px;border-bottom:1px solid #E2E8F0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td>
+                  <span style="font-size:13px;font-weight:700;color:#374151;">Loan #{{ loop.index }}</span>
+                  &nbsp;
+                  <span style="font-size:11px;color:#9CA3AF;">Issued {{ loan.loan_date }}</span>
+                </td>
+                <td style="text-align:right;">
+                  <span style="display:inline-block;background:#DBEAFE;color:#1E40AF;font-size:11px;font-weight:700;padding:3px 10px;border-radius:20px;">Active</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Loan Stats Grid -->
+        <tr>
+          <td style="padding:16px 20px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <!-- Loan Amount -->
+                <td width="33%" style="text-align:center;padding:12px 8px;background:#F8FAFC;border-radius:8px;border:1px solid #E2E8F0;">
+                  <p style="margin:0 0 4px;font-size:10px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;">Loan Amount</p>
+                  <p style="margin:0;font-size:15px;font-weight:800;color:#1E293B;">{{ loan.loan_amount_fmt }}</p>
+                </td>
+                <td width="2%">&nbsp;</td>
+                <!-- Paid -->
+                <td width="33%" style="text-align:center;padding:12px 8px;background:#F0FDF4;border-radius:8px;border:1px solid #BBF7D0;">
+                  <p style="margin:0 0 4px;font-size:10px;font-weight:600;color:#059669;text-transform:uppercase;letter-spacing:0.5px;">Paid</p>
+                  <p style="margin:0;font-size:15px;font-weight:800;color:#065F46;">{{ loan.paid_amount_fmt }}</p>
+                </td>
+                <td width="2%">&nbsp;</td>
+                <!-- Remaining -->
+                <td width="33%" style="text-align:center;padding:12px 8px;background:#FFF1F2;border-radius:8px;border:1px solid #FECDD3;">
+                  <p style="margin:0 0 4px;font-size:10px;font-weight:600;color:#E11D48;text-transform:uppercase;letter-spacing:0.5px;">Remaining</p>
+                  <p style="margin:0;font-size:15px;font-weight:800;color:#9F1239;">{{ loan.remaining_balance_fmt }}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Monthly Payment Row -->
+        <tr>
+          <td style="padding:0 20px 16px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(90deg,#FFF7ED,#FFEDD5);border-radius:8px;border:1px solid #FED7AA;">
+              <tr>
+                <td style="padding:12px 16px;">
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                    <tr>
+                      <td style="font-size:13px;color:#92400E;font-weight:600;">Minimum Monthly Payment</td>
+                      <td style="font-size:15px;font-weight:800;color:#9A3412;text-align:right;">{{ loan.minimum_monthly_payment_fmt }}</td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+{% endfor %}
+
+<!-- REMINDER BOX -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:24px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(135deg,#FFFBEB,#FEF3C7);border-radius:12px;border-left:4px solid #F59E0B;">
+        <tr>
+          <td style="padding:18px 20px;">
+            <p style="margin:0;font-size:13px;font-weight:700;color:#92400E;">&#9888;&nbsp; Action Required</p>
+            <p style="margin:8px 0 0;font-size:13px;color:#78350F;line-height:1.6;">
+              Please make your monthly payment <strong>before the 2nd of this month</strong>.<br/>
+              Thank you for keeping your payments up to date.
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- CTA BUTTON -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:32px 40px 36px;text-align:center;">
+      <a href="{{ frontend_url }}" style="display:inline-block;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:15px 36px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(37,99,235,0.35);">
+        View My Loans &rarr;
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

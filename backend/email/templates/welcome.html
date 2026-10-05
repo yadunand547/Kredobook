@@ -1,0 +1,115 @@
+﻿{% extends "base.html" %}
+{% block title %}Welcome to KredoBook!{% endblock %}
+{% block content %}
+
+<!-- HERO BANNER -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="background:linear-gradient(180deg,#EFF6FF 0%,#ffffff 100%);padding:40px 40px 0;text-align:center;border-bottom:1px solid #EFF6FF;">
+      <!-- Icon -->
+      <div style="display:inline-block;background:linear-gradient(135deg,#2563EB,#3B82F6);border-radius:50%;width:64px;height:64px;line-height:64px;text-align:center;margin-bottom:20px;">
+        <span style="font-size:28px;line-height:64px;display:block;">🎉</span>
+      </div>
+      <h1 style="margin:0 0 10px;font-size:26px;font-weight:800;color:#1E3A8A;letter-spacing:-0.5px;">Welcome to KredoBook!</h1>
+      <p style="margin:0 0 28px;font-size:15px;color:#64748B;line-height:1.6;">
+        Hello <strong style="color:#1E40AF;">{{ borrower_name }}</strong>, your borrower account is ready to use.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<!-- ACCOUNT DETAILS CARD -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:28px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F8FAFC;border-radius:12px;border:1px solid #E2E8F0;overflow:hidden;">
+        <tr>
+          <td style="background:linear-gradient(90deg,#1E40AF,#2563EB);padding:14px 20px;">
+            <p style="margin:0;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);letter-spacing:1.5px;text-transform:uppercase;">Account Details</p>
+          </td>
+        </tr>
+        <!-- Row: Email -->
+        <tr>
+          <td style="padding:16px 20px;border-bottom:1px solid #E2E8F0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-size:12px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;width:40%;">Email</td>
+                <td style="font-size:14px;font-weight:600;color:#1E293B;text-align:right;">{{ borrower_email }}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Row: Account Type -->
+        <tr>
+          <td style="padding:16px 20px;border-bottom:1px solid #E2E8F0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-size:12px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;width:40%;">Account Type</td>
+                <td style="font-size:14px;font-weight:600;color:#1E293B;text-align:right;">Borrower</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Row: Status -->
+        <tr>
+          <td style="padding:16px 20px;border-bottom:1px solid #E2E8F0;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-size:12px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;width:40%;">Status</td>
+                <td style="text-align:right;">
+                  <span style="display:inline-block;background:#D1FAE5;color:#065F46;font-size:12px;font-weight:700;padding:4px 12px;border-radius:20px;letter-spacing:0.3px;">&#10003; Active</span>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <!-- Row: Created Date -->
+        <tr>
+          <td style="padding:16px 20px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="font-size:12px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.5px;width:40%;">Created Date</td>
+                <td style="font-size:14px;font-weight:600;color:#1E293B;text-align:right;">{{ created_date }}</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+<!-- CTA BUTTON -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:32px 40px;text-align:center;">
+      <a href="{{ frontend_url }}" style="display:inline-block;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:15px 36px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(37,99,235,0.35);">
+        Login to KredoBook &rarr;
+      </a>
+    </td>
+  </tr>
+</table>
+
+<!-- FEATURES LIST -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:0 40px 36px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#EFF6FF;border-radius:12px;border:1px solid #BFDBFE;padding:20px;">
+        <tr>
+          <td style="padding:20px 24px;">
+            <p style="margin:0 0 14px;font-size:13px;font-weight:700;color:#1E40AF;text-transform:uppercase;letter-spacing:1px;">With KredoBook you can</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr><td style="padding:5px 0;font-size:14px;color:#374151;">&#x2713;&nbsp;&nbsp;<strong>View active loans</strong> and outstanding balances</td></tr>
+              <tr><td style="padding:5px 0;font-size:14px;color:#374151;">&#x2713;&nbsp;&nbsp;<strong>Submit repayments</strong> with screenshot proof</td></tr>
+              <tr><td style="padding:5px 0;font-size:14px;color:#374151;">&#x2713;&nbsp;&nbsp;<strong>Track payment history</strong> in real time</td></tr>
+              <tr><td style="padding:5px 0;font-size:14px;color:#374151;">&#x2713;&nbsp;&nbsp;<strong>Upload payment screenshots</strong> securely</td></tr>
+              <tr><td style="padding:5px 0;font-size:14px;color:#374151;">&#x2713;&nbsp;&nbsp;<strong>Receive monthly reminders</strong> via email</td></tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}
