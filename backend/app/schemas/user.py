@@ -54,3 +54,9 @@ class BorrowerUpdate(BaseModel):
     phone: Optional[str] = Field(None, max_length=20)
     is_active: Optional[bool] = None
     monthly_reminder_enabled: Optional[bool] = None
+
+
+class BorrowerPasswordReset(BaseModel):
+    """Admin-only request to replace a borrower's password."""
+
+    password: str = Field(..., min_length=6, max_length=128)

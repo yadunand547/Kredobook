@@ -206,7 +206,29 @@ def test_borrower_management_lifecycle(admin_token):
     assert me_res.status_code == 200
     assert me_res.json()["email"] == borrower_email
 
-    # 7. Admin deactivates borrower
+    # 7. Admin resets the password; the old one is no longer valid.
+    new_password = "NewBorrowerPass456!"
+    reset_res = client.post(
+        f"/borrowers/{borrower_id}/reset-password",
+        headers={"Authorization": f"Bearer {admin_token}"},
+        json={"password": new_password},
+    )
+    assert reset_res.status_code == 200
+    assert reset_res.json()["success"] is True
+
+    old_password_login = client.post(
+        "/auth/login",
+        json={"email": borrower_email, "password": borrower_password},
+    )
+    assert old_password_login.status_code == 401
+
+    new_password_login = client.post(
+        "/auth/login",
+        json={"email": borrower_email, "password": new_password},
+    )
+    assert new_password_login.status_code == 200
+
+    # 8. Admin deactivates borrower
     deact_res = client.delete(
         f"/borrowers/{borrower_id}",
         headers={"Authorization": f"Bearer {admin_token}"},
@@ -214,10 +236,10 @@ def test_borrower_management_lifecycle(admin_token):
     assert deact_res.status_code == 200
     assert deact_res.json()["is_active"] is False
 
-    # 8. Deactivated borrower cannot log in
+    # 9. Deactivated borrower cannot log in
     deact_login = client.post(
         "/auth/login",
-        json={"email": borrower_email, "password": borrower_password},
+        json={"email": borrower_email, "password": new_password},
     )
     assert deact_login.status_code == 401
     assert "deactivated" in deact_login.json()["detail"].lower()

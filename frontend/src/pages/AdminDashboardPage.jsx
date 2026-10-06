@@ -5,6 +5,7 @@ import {
   fetchBorrowers,
   createBorrower,
   updateBorrower,
+  resetBorrowerPassword,
   deactivateBorrower,
   deleteBorrower,
 } from '../services/borrowers';
@@ -210,6 +211,7 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
   const [showBorrowerModal, setShowBorrowerModal] = useState(false);
   const [showLoanModal, setShowLoanModal] = useState(false);
   const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
+  const [resettingBorrower, setResettingBorrower] = useState(null);
   const [showLoanDetail, setShowLoanDetail] = useState(null);
   const [loanPaymentsHistory, setLoanPaymentsHistory] = useState([]);
   const [loanPaymentsLoading, setLoanPaymentsLoading] = useState(false);
@@ -246,6 +248,7 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
     feature_highlight: '',
     cta_label: 'Open KredoBook',
   });
+  const [newBorrowerPassword, setNewBorrowerPassword] = useState('');
   const [showPastPaymentModal, setShowPastPaymentModal] = useState(false);
   const [pastPaymentLoan, setPastPaymentLoan] = useState(null);
   const [editingPastPayment, setEditingPastPayment] = useState(null);
@@ -502,6 +505,7 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
 
   const [dispatchingReminders, setDispatchingReminders] = useState(false);
   const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
 
   const handleToggleActive = async (b) => {
     try {
@@ -522,6 +526,22 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
       await loadBorrowers();
     } catch (err) {
       setError(err.message);
+    }
+  };
+
+  const handleResetBorrowerPassword = async (e) => {
+    e.preventDefault();
+    setFormError(null);
+    setResettingPassword(true);
+    try {
+      await resetBorrowerPassword(resettingBorrower.id, newBorrowerPassword);
+      flash(`Password reset for ${resettingBorrower.name}. Share the new password securely.`);
+      setResettingBorrower(null);
+      setNewBorrowerPassword('');
+    } catch (err) {
+      setFormError(err.message || 'Failed to reset borrower password.');
+    } finally {
+      setResettingPassword(false);
     }
   };
 
@@ -1235,6 +1255,17 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
                               className={`action-btn-sm ${b.is_active ? 'btn-deactivate' : 'btn-activate'}`}
                             >
                               {b.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-sm btn-outline"
+                              onClick={() => {
+                                setFormError(null);
+                                setNewBorrowerPassword('');
+                                setResettingBorrower(b);
+                              }}
+                            >
+                              Reset Password
                             </button>
                             <button
                               type="button"
@@ -2306,6 +2337,45 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
                 <button type="button" className="btn-secondary" onClick={() => setShowAnnouncementModal(false)}>Cancel</button>
                 <button type="submit" className="submit-btn" disabled={sendingAnnouncement || activeBorrowers.length === 0}>
                   {sendingAnnouncement ? 'Sending...' : `Send to ${activeBorrowers.length} borrowers`}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {resettingBorrower && (
+        <div className="modal-backdrop" onClick={() => setResettingBorrower(null)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Reset Password</h3>
+                <p className="section-desc">Set a new password for {resettingBorrower.name}. The existing password cannot be recovered.</p>
+              </div>
+              <button className="modal-close" onClick={() => setResettingBorrower(null)}>×</button>
+            </div>
+            {formError && (
+              <div className="alert-banner alert-error" style={{ marginBottom: '16px' }}><span>{formError}</span></div>
+            )}
+            <form onSubmit={handleResetBorrowerPassword} className="modal-form">
+              <div className="form-group">
+                <label className="form-label">New temporary password *</label>
+                <input
+                  type="password"
+                  required
+                  minLength={6}
+                  maxLength={128}
+                  className="form-input"
+                  autoComplete="new-password"
+                  value={newBorrowerPassword}
+                  onChange={(e) => setNewBorrowerPassword(e.target.value)}
+                />
+                <p className="section-desc">Use at least 6 characters and share it with the borrower through a secure channel.</p>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setResettingBorrower(null)}>Cancel</button>
+                <button type="submit" className="submit-btn" disabled={resettingPassword}>
+                  {resettingPassword ? 'Resetting...' : 'Reset Password'}
                 </button>
               </div>
             </form>

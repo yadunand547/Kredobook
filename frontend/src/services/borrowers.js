@@ -26,6 +26,13 @@ export async function updateBorrower(id, borrowerData) {
   });
 }
 
+export async function resetBorrowerPassword(id, password) {
+  return await apiClient(`/borrowers/${id}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify({ password }),
+  });
+}
+
 export async function deactivateBorrower(id) {
   return await apiClient(`/borrowers/${id}`, {
     method: 'DELETE',
@@ -37,4 +44,3 @@ export async function deleteBorrower(id) {
     method: 'DELETE',
   });
 }
-

@@ -13,7 +13,7 @@ logger = logging.getLogger("loantracker.borrowers")
 from app.database import get_db
 from app.dependencies import require_admin
 from app.models.user import User, UserRole
-from app.schemas.user import BorrowerCreate, BorrowerCreateResponse, BorrowerUpdate, UserOut
+from app.schemas.user import BorrowerCreate, BorrowerCreateResponse, BorrowerPasswordReset, BorrowerUpdate, UserOut
 from app.utils.security import hash_password
 
 router = APIRouter(
@@ -179,6 +179,30 @@ def update_borrower(
     db.refresh(borrower)
 
     return borrower
+
+
+@router.post("/{borrower_id}/reset-password", status_code=status.HTTP_200_OK)
+def reset_borrower_password(
+    borrower_id: int,
+    payload: BorrowerPasswordReset,
+    db: Session = Depends(get_db),
+):
+    """Replace a borrower's password. The previous password is never returned."""
+    borrower = (
+        db.query(User)
+        .filter(User.id == borrower_id, User.role == UserRole.BORROWER)
+        .first()
+    )
+    if not borrower:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Borrower not found",
+        )
+
+    borrower.password_hash = hash_password(payload.password)
+    db.commit()
+    logger.info("Password reset by an administrator for borrower_id=%s", borrower_id)
+    return {"success": True, "message": "Borrower password reset successfully."}
 
 
 @router.delete("/{borrower_id}", response_model=UserOut)
