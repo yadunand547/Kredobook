@@ -237,3 +237,38 @@ def send_monthly_reminder_email(
         f"Regards,\nKredoBook Team"
     )
     return send_email(to_email=borrower_email, subject=subject, body_html=html_body, body_text=plain_text)
+
+
+def send_feature_announcement_email(
+    borrower_name: str,
+    borrower_email: str,
+    feature_title: str,
+    feature_message: str,
+    feature_highlight: Optional[str] = None,
+    cta_label: str = "Open KredoBook",
+    cta_url: Optional[str] = None,
+) -> Tuple[bool, Optional[str]]:
+    """Send a product-update announcement using the shared branded email layout."""
+    subject = f"KredoBook - New Feature: {feature_title}"
+    ctx = {
+        "borrower_name": borrower_name,
+        "feature_title": feature_title,
+        "feature_message": feature_message,
+        "feature_highlight": feature_highlight,
+        "cta_label": cta_label,
+        "cta_url": cta_url or settings.FRONTEND_URL,
+    }
+    try:
+        html_body = _render_template("feature_announcement.html", ctx)
+    except Exception as e:
+        return False, f"Template error: {e}"
+
+    plain_text = (
+        f"Hello {borrower_name},\n\n"
+        f"What's new: {feature_title}\n\n"
+        f"{feature_message}\n\n"
+        f"{feature_highlight + chr(10) + chr(10) if feature_highlight else ''}"
+        f"{cta_label}: {cta_url or settings.FRONTEND_URL}\n\n"
+        "Regards,\nKredoBook Team"
+    )
+    return send_email(to_email=borrower_email, subject=subject, body_html=html_body, body_text=plain_text)

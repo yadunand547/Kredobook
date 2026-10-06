@@ -81,5 +81,9 @@ def test_all_project_email_templates_render_and_send(monkeypatch):
     assert email_service.send_welcome_email("Asha", "asha@example.com")[0]
     assert email_service.send_new_loan_email("Asha", "asha@example.com", 1, 5000, 5500, 500, "2026-10-05")[0]
     assert email_service.send_monthly_reminder_email("Asha", "asha@example.com", 5000, [{"loan_amount": 5000, "total_payable": 5500, "paid_amount": 500, "remaining_balance": 5000, "minimum_monthly_payment": 500, "loan_date": "2026-10-05"}], "2026-10")[0]
-    assert len(sent) == 3
+    assert email_service.send_feature_announcement_email(
+        "Asha", "asha@example.com", "Payment history", "You can now view every payment in one place.", "Find it on your dashboard."
+    )[0]
+    assert len(sent) == 4
     assert all("https://kredobook.vercel.app" in html for _, _, html, _ in sent)
+    assert "Payment history" in sent[-1][2]

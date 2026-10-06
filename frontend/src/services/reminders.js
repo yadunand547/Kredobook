@@ -22,3 +22,10 @@ export async function toggleBorrowerReminder(borrowerId, enabled) {
     body: JSON.stringify({ enabled }),
   });
 }
+
+export async function sendFeatureAnnouncement(announcement) {
+  return await apiClient('/announcements/feature', {
+    method: 'POST',
+    body: JSON.stringify(announcement),
+  });
+}

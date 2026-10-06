@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}KredoBook - {{ feature_title }}{% endblock %}
+{% block content %}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="background:linear-gradient(180deg,#EFF6FF 0%,#ffffff 100%);padding:40px 40px 0;text-align:center;">
+      <div style="display:inline-block;background:linear-gradient(135deg,#7C3AED,#2563EB);border-radius:50%;width:64px;height:64px;text-align:center;margin-bottom:20px;">
+        <span style="font-size:28px;line-height:64px;display:block;">&#10024;</span>
+      </div>
+      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#7C3AED;letter-spacing:1.5px;text-transform:uppercase;">What's New</p>
+      <h1 style="margin:0 0 12px;font-size:26px;font-weight:800;color:#1E3A8A;letter-spacing:-0.5px;">{{ feature_title }}</h1>
+      <p style="margin:0 0 28px;font-size:15px;color:#64748B;line-height:1.6;">
+        Hello <strong style="color:#1E40AF;">{{ borrower_name }}</strong>, we have an update for you.
+      </p>
+    </td>
+  </tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:28px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:linear-gradient(135deg,#F5F3FF,#EFF6FF);border:1px solid #DDD6FE;border-radius:14px;">
+        <tr>
+          <td style="padding:28px;">
+            <p style="margin:0;font-size:15px;color:#334155;line-height:1.75;white-space:pre-line;">{{ feature_message }}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+
+{% if feature_highlight %}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:20px 40px 0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;">
+        <tr>
+          <td style="padding:18px 20px;">
+            <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:1px;">Why you'll like it</p>
+            <p style="margin:0;font-size:14px;color:#065F46;line-height:1.6;">{{ feature_highlight }}</p>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+{% endif %}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td style="padding:32px 40px 36px;text-align:center;">
+      <a href="{{ cta_url }}" style="display:inline-block;background:linear-gradient(135deg,#2563EB,#1D4ED8);color:#ffffff;font-size:15px;font-weight:700;text-decoration:none;padding:15px 36px;border-radius:10px;letter-spacing:0.3px;box-shadow:0 4px 14px rgba(37,99,235,0.35);">
+        {{ cta_label }} &rarr;
+      </a>
+    </td>
+  </tr>
+</table>
+
+{% endblock %}

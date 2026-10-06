@@ -28,6 +28,7 @@ import {
 import {
   triggerMonthlyReminders,
   toggleBorrowerReminder,
+  sendFeatureAnnouncement,
 } from '../services/reminders';
 
 
@@ -208,6 +209,7 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
   // Modals
   const [showBorrowerModal, setShowBorrowerModal] = useState(false);
   const [showLoanModal, setShowLoanModal] = useState(false);
+  const [showAnnouncementModal, setShowAnnouncementModal] = useState(false);
   const [showLoanDetail, setShowLoanDetail] = useState(null);
   const [loanPaymentsHistory, setLoanPaymentsHistory] = useState([]);
   const [loanPaymentsLoading, setLoanPaymentsLoading] = useState(false);
@@ -238,6 +240,12 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
     notes: '',
   });
   const [editLoanForm, setEditLoanForm] = useState({});
+  const [announcementForm, setAnnouncementForm] = useState({
+    feature_title: '',
+    feature_message: '',
+    feature_highlight: '',
+    cta_label: 'Open KredoBook',
+  });
   const [showPastPaymentModal, setShowPastPaymentModal] = useState(false);
   const [pastPaymentLoan, setPastPaymentLoan] = useState(null);
   const [editingPastPayment, setEditingPastPayment] = useState(null);
@@ -493,6 +501,7 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
   };
 
   const [dispatchingReminders, setDispatchingReminders] = useState(false);
+  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
 
   const handleToggleActive = async (b) => {
     try {
@@ -576,6 +585,38 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
       setError(err.message || 'Failed to dispatch monthly reminders.');
     } finally {
       setDispatchingReminders(false);
+    }
+  };
+
+  const handleSendFeatureAnnouncement = async (e) => {
+    e.preventDefault();
+    const recipientCount = activeBorrowers.length;
+    if (!window.confirm(`Send this feature announcement to ${recipientCount} active borrower${recipientCount === 1 ? '' : 's'}?`)) {
+      return;
+    }
+
+    setFormError(null);
+    setSendingAnnouncement(true);
+    try {
+      const result = await sendFeatureAnnouncement({
+        ...announcementForm,
+        feature_highlight: announcementForm.feature_highlight || undefined,
+      });
+      setShowAnnouncementModal(false);
+      setAnnouncementForm({
+        feature_title: '',
+        feature_message: '',
+        feature_highlight: '',
+        cta_label: 'Open KredoBook',
+      });
+      flash(`Feature announcement sent to ${result.sent} of ${result.total_recipients} active borrowers.`);
+      if (result.failed?.length) {
+        setError(result.failed[0].error || 'One or more announcement emails could not be delivered.');
+      }
+    } catch (err) {
+      setFormError(err.message || 'Failed to send feature announcement.');
+    } finally {
+      setSendingAnnouncement(false);
     }
   };
 
@@ -841,19 +882,29 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
               <h2 style={{ fontSize: '1.25rem', fontWeight: 600, color: '#f8fafc', margin: 0 }}>Portfolio Overview</h2>
               <p style={{ color: '#94a3b8', fontSize: '0.85rem', margin: '2px 0 0' }}>Real-time overview of active borrowers, balances, and repayments</p>
             </div>
-            <button
-              type="button"
-              className="btn-sm btn-outline"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '8px' }}
-              onClick={handleDispatchReminders}
-              disabled={dispatchingReminders}
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <polyline points="22,6 12,13 2,6" />
-              </svg>
-              <span>{dispatchingReminders ? 'Sending Reminders...' : 'Trigger Monthly Reminders'}</span>
-            </button>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="btn-sm btn-outline"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '8px' }}
+                onClick={() => { setFormError(null); setShowAnnouncementModal(true); }}
+              >
+                <span>Announce New Feature</span>
+              </button>
+              <button
+                type="button"
+                className="btn-sm btn-outline"
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '8px 14px', borderRadius: '8px' }}
+                onClick={handleDispatchReminders}
+                disabled={dispatchingReminders}
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 16, height: 16 }}>
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+                <span>{dispatchingReminders ? 'Sending Reminders...' : 'Trigger Monthly Reminders'}</span>
+              </button>
+            </div>
           </div>
 
           {/* Summary KPI Cards */}
@@ -2187,6 +2238,74 @@ export function AdminDashboardPage({ initialTab = 'dashboard' }) {
                 </button>
                 <button type="submit" className="submit-btn" disabled={formSubmitting}>
                   {formSubmitting ? 'Creating...' : 'Create Loan'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showAnnouncementModal && (
+        <div className="modal-backdrop" onClick={() => setShowAnnouncementModal(false)}>
+          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div>
+                <h3 className="modal-title">Announce New Feature</h3>
+                <p className="section-desc">This will email all {activeBorrowers.length} active borrowers.</p>
+              </div>
+              <button className="modal-close" onClick={() => setShowAnnouncementModal(false)}>×</button>
+            </div>
+            {formError && (
+              <div className="alert-banner alert-error" style={{ marginBottom: '16px' }}>
+                <span>{formError}</span>
+              </div>
+            )}
+            <form onSubmit={handleSendFeatureAnnouncement} className="modal-form">
+              <div className="form-group">
+                <label className="form-label">Feature title *</label>
+                <input
+                  required
+                  maxLength={255}
+                  className="form-input"
+                  placeholder="e.g. Payment History is here"
+                  value={announcementForm.feature_title}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, feature_title: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Message *</label>
+                <textarea
+                  required
+                  rows={5}
+                  className="form-input"
+                  placeholder="Describe the new feature and how it helps borrowers..."
+                  value={announcementForm.feature_message}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, feature_message: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Highlight (optional)</label>
+                <input
+                  className="form-input"
+                  placeholder="e.g. Find it directly from your dashboard."
+                  value={announcementForm.feature_highlight}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, feature_highlight: e.target.value })}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Button label</label>
+                <input
+                  required
+                  maxLength={100}
+                  className="form-input"
+                  value={announcementForm.cta_label}
+                  onChange={(e) => setAnnouncementForm({ ...announcementForm, cta_label: e.target.value })}
+                />
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn-secondary" onClick={() => setShowAnnouncementModal(false)}>Cancel</button>
+                <button type="submit" className="submit-btn" disabled={sendingAnnouncement || activeBorrowers.length === 0}>
+                  {sendingAnnouncement ? 'Sending...' : `Send to ${activeBorrowers.length} borrowers`}
                 </button>
               </div>
             </form>

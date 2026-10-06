@@ -25,6 +25,14 @@ class ReminderToggleRequest(BaseModel):
     enabled: bool
 
 
+class FeatureAnnouncementRequest(BaseModel):
+    feature_title: str
+    feature_message: str
+    feature_highlight: Optional[str] = None
+    cta_label: str = "Open KredoBook"
+    cta_url: Optional[str] = None
+
+
 class ReminderLogResponse(BaseModel):
     id: int
     borrower_id: int
@@ -53,6 +61,47 @@ def trigger_monthly_reminders(
     """
     result = send_monthly_reminders_for_all(db=db, target_month=month)
     return result
+
+
+@router.post(
+    "/announcements/feature",
+    dependencies=[Depends(require_admin)],
+)
+def send_feature_announcement(
+    payload: FeatureAnnouncementRequest,
+    db: Session = Depends(get_db),
+):
+    """Send a branded feature announcement to every active borrower."""
+    from app.services.email_service import send_feature_announcement_email
+
+    borrowers = (
+        db.query(User)
+        .filter(User.role == UserRole.BORROWER, User.is_active == True)  # noqa: E712
+        .all()
+    )
+    sent = 0
+    failed = []
+    for borrower in borrowers:
+        success, error_msg = send_feature_announcement_email(
+            borrower_name=borrower.name,
+            borrower_email=borrower.email,
+            feature_title=payload.feature_title,
+            feature_message=payload.feature_message,
+            feature_highlight=payload.feature_highlight,
+            cta_label=payload.cta_label,
+            cta_url=payload.cta_url,
+        )
+        if success:
+            sent += 1
+        else:
+            failed.append({"borrower_id": borrower.id, "email": borrower.email, "error": error_msg})
+
+    return {
+        "success": not failed,
+        "total_recipients": len(borrowers),
+        "sent": sent,
+        "failed": failed,
+    }
 
 
 # ── Admin: View Reminder Audit Logs ──────────────────────────────────
